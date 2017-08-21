@@ -2,7 +2,7 @@ import itertools
 import shlex
 
 
-class ELFFLogreader(Exception):
+class ELFFLogreader():
     """
     This Class reads an given file in ELFF format, which has a header line for the used fields in the log.
     The content is crunched to a list of dictionaries, where one dictionary is one log line.
