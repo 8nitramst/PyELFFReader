@@ -10,6 +10,13 @@ Who uses ELFF format?
 * Symantec SGProxy (aka BlueCoat)
 * MS IIS 6.0
 
+Dependencies:
+-------------
+* python-magic: Thanks to https://github.com/ahupp/python-magic and  https://pypi.python.org/pypi/python-magic
+  * How-To: 
+`pip install python-magic`
+
+
 Links:
 ------
 * https://en.wikipedia.org/wiki/Extended_Log_Format
