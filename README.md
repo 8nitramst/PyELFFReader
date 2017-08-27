@@ -12,5 +12,6 @@ Who uses ELFF format?
 
 Links:
 ------
+* https://en.wikipedia.org/wiki/Extended_Log_Format
 * https://www.microsoft.com/technet/prodtechnol/WindowsServer2003/Library/IIS/676400bc-8969-4aa7-851a-9319490a9bbb.mspx?mfr=true
 * https://www.w3.org/TR/WD-logfile.html
