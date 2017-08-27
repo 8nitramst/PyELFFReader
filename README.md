@@ -15,6 +15,7 @@ Dependencies:
 * python-magic: Thanks to https://github.com/ahupp/python-magic and  https://pypi.python.org/pypi/python-magic
   * How-To: 
 `pip install python-magic`
+  * copyright by Adam Hupp under MIT License
 
 
 Links:
