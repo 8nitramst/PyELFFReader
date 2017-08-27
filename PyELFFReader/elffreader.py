@@ -1,5 +1,9 @@
+import gzip
 import itertools
+import os
 import shlex
+
+import magic
 
 
 class ELFFLogreader():
@@ -9,54 +13,149 @@ class ELFFLogreader():
 
 
     """
-    m_file = ""
+
     m_dictLogList = []
 
-    def __init__(self, fname):
-        self.m_file = fname
+    def __init__(self, fname, ft=False):
+        if ft == False:
+            self.__initParserNFT__(fname)
+        if ft == True:
+            self.__initParserFTT__(fname)
+
+    def __initParserFTT__(self, fname):
+        '''
+        Fault Tolerance Parser - This Parser has Fault-Tolerance on board,
+
+        :param fname: (str) Filename
+
+        '''
+
+        # check if the path exists and the file type
+        try:
+            if os.path.exists(fname):
+                mime = magic.Magic(mime=True)
+                ftype = mime.from_file(str(fname))
+            else:
+                raise IOError("No such file " + fname)
+        except IOError:
+            raise
 
         try:
-            with open(self.m_file, "r") as reader:
-                filecontent = reader.readlines()
+            print "Depending on the size this could take a few minutes..."
+            # Read the file
+            filecontent = []
+            if ftype == "text/plain":
+                with open(fname, "r") as reader:
+                    filecontent = reader.readlines()
+            else:
+                if ftype == "application/gzip":
+                    with gzip.open(fname, "r") as reader:
+                        filecontent = reader.readlines()
 
-            comments = []
             dictLogKeys = None
+            self.m_dictLogList = []
 
             # read the header comments and prepare the "#Fields - Header" for parsing to dict-keys
             for i in filecontent:
+                # strip comments - and  get the columns titles
                 if i.startswith("#"):
                     if i.startswith("#Fields: "):
+                        # change column header, if there are multiple files concatenated
                         dictLogKeys = shlex.split(i.replace("#Fields: ", ""))
-                        comments.append(i)
-                        break
-                    else:
-                        comments.append(i)
-
-            try:
-                if dictLogKeys is not None:
-                    # remove the comment lines
-                    for i in comments:
-                        filecontent.remove(i)
-
-                    self.m_dictLogList = []
-
-                    # Standard-header
-                    # #BC header
-                    # #Version: 1.0
-                    # #Date: 2005-04-27 20:57:09
-                    # #Fields: date time time-taken c-ip sc-status s-action sc-bytes cs-bytes cs-method cs-uri-scheme cs-host cs-uri-path cs-uri-query cs-username s-hierarchy s-supplier-name rs(Content-Type) cs(User-Agent) sc-filter-result sc-filter-category x-virus-id s-ip s-sitename x-virus-details x-icap-error-code x-icap-error-details
-
-                    # crunch the log lines to a dictionary
-                    for logline in filecontent:
-                        dictLogValues = shlex.split(logline)
-                        dictLogLine = dict(itertools.izip(dictLogKeys, dictLogValues))
-                        self.m_dictLogList.append(dictLogLine)
                 else:
-                    raise StandardError("Logfile not in ELFF-Format")
-            except StandardError as e:
-                print "Error: %s" % e.message
+                    try:
+                        # split the logline
+                        dictLogValues = shlex.split(i)
+                    except:
+                        try:
+                            # second method to split if the first fails
+                            s = shlex.shlex(i)
+                            s.whitespace_split = True
+                            s.whitespace = " "
+                            dictLogValues = list(s)
+                        except:
+                            raise
+
+                    # generate dictionary and add it to the list
+                    dictLogLine = dict(itertools.izip(dictLogKeys, dictLogValues))
+                    self.m_dictLogList.append(dictLogLine)
         except IOError:
-            print "No such file: %s" % (self.m_file)
+            print "No such file: %s" % (fname)
+
+    def __initParserNFT__(self, fname):
+        '''
+        The ristrictive Parser - This Parser is not Fault-Tolerance
+
+        :param fname: (str) - Filename of the Logfile
+
+        '''
+
+        ftype = ""
+
+        # check the file type
+        try:
+            if os.path.exists(fname):
+                mime = magic.Magic(mime=True)
+                ftype = mime.from_file(str(fname))
+            else:
+                raise IOError("No such file " + fname)
+        except IOError:
+            raise
+
+        try:
+
+            print "Depending on the size this could take a few minutes..."
+
+            filecontent = []
+            # Read the file
+            if ftype == "text/plain":
+                with open(fname, "r") as reader:
+                    filecontent = reader.readlines()
+            else:
+                if ftype == "application/gzip":
+                    with gzip.open(fname, "r") as reader:
+                        filecontent = reader.readlines()
+
+            dictLogKeys = None
+            keyline = 0
+            self.m_dictLogList = []
+
+            # read the file-content
+            for i in filecontent:
+                # strip comments - and  get the columns titles
+                if i.startswith("#"):
+                    if i.startswith("#Fields: "):
+                        # allow only one header line in the file
+                        if keyline == 0:
+                            dictLogKeys = shlex.split(i.replace("#Fields: ", ""))
+                            keyline = 1
+                else:
+                    # for each logline
+                    if keyline == 1:
+                        try:
+                            # split the logline
+                            dictLogValues = shlex.split(i)
+                        except ValueError:
+                            # if the logline can not be splitted well - try it a second time with different splitter
+                            try:
+                                s = shlex.shlex(i)
+                                s.whitespace_split = True
+                                s.whitespace = " "
+                                dictLogValues = list(s)
+                            except:
+                                raise
+
+                        # check of keys to value parsing - count of keys and values should not change
+                        if len(dictLogKeys) == len(dictLogValues):
+                            # generate dictonary entry and add it to the  list
+                            dictLogLine = dict(itertools.izip(dictLogKeys, dictLogValues))
+                            self.m_dictLogList.append(dictLogLine)
+                        else:
+                            raise StandardError("Logfile might be damaged")
+                    else:
+                        raise StandardError("Logfile not in ELFF-Format")
+        except IOError:
+            print "No such file: %s" % (fname)
 
 
 
